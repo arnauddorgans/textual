@@ -25,15 +25,47 @@ extension StructuredText {
       Group(subviews: content) { children in
         BlockVStackLayout(textAlignment: textAlignment) {
           ForEach(children) { child in
-            // The block's spacing as a layout value, from its container value: in the same pass, so the first
-            // layout has the final spacing. Overridden by the resolved list item spacing if enabled.
-            child.layoutValue(
-              key: BlockSpacingKey.self,
-              value: listItemSpacingEnabled ? resolvedListItemSpacing : child.containerValues.textualBlockSpacing
-            )
+            BlockLayoutView(child, own: child.containerValues.textualBlockSpacing)
           }
         }
       }
+    }
+  }
+
+  /// A block's spacing as a layout value. The preference, the union of the block's and its nested blocks', is the
+  /// reference; it only arrives after the first layout, so that one uses the block's own spacing (its container
+  /// value), or the style's default for a block without one (a list, a quote), which is what the union comes to.
+  fileprivate struct BlockLayoutView<Content: View>: View {
+    @Environment(\.listItemSpacingEnabled) private var listItemSpacingEnabled
+    @Environment(\.resolvedListItemSpacing) private var resolvedListItemSpacing
+    @Environment(\.textualDefaultBlockSpacing) private var defaultBlockSpacing
+
+    @State private var blockSpacing: BlockSpacing?
+
+    private let content: Content
+    private let own: BlockSpacing
+
+    init(_ content: Content, own: BlockSpacing) {
+      self.content = content
+      self.own = own
+    }
+
+    var body: some View {
+      content
+        .onPreferenceChange(BlockSpacingKey.self) { @MainActor value in
+          blockSpacing = value
+        }
+        .layoutValue(key: BlockSpacingKey.self, value: resolvedSpacing)
+    }
+
+    private var resolvedSpacing: BlockSpacing {
+      if listItemSpacingEnabled {
+        return resolvedListItemSpacing
+      }
+      if let blockSpacing {
+        return blockSpacing
+      }
+      return own.top == nil && own.bottom == nil ? defaultBlockSpacing : own
     }
   }
 }

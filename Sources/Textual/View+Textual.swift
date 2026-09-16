@@ -33,6 +33,13 @@ extension TextualNamespace where Base: View {
     }
   }
 
+  /// Sets the spacing a block without spacing of its own (a list, a quote) is laid out with on its first layout,
+  /// before the spacing of its nested blocks is known: what that comes to in the style in use, so the first layout
+  /// has the final height.
+  @MainActor public func defaultBlockSpacing(_ blockSpacing: StructuredText.BlockSpacing) -> some View {
+    base.environment(\.textualDefaultBlockSpacing, blockSpacing)
+  }
+
   /// Sets line spacing using a font-relative value.
   @MainActor public func lineSpacing(_ lineSpacing: FontScaled<CGFloat>) -> some View {
     WithFontScaledValue(lineSpacing) {
