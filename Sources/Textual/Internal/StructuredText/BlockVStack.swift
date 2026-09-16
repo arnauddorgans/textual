@@ -75,29 +75,6 @@ extension StructuredText {
     static let defaultValue: TextAlignment? = nil
   }
 
-  fileprivate struct BlockLayoutView<Content: View>: View {
-    @Environment(\.listItemSpacingEnabled) private var listItemSpacingEnabled
-    @Environment(\.resolvedListItemSpacing) private var resolvedListItemSpacing
-
-    @State private var blockSpacing = BlockSpacing()
-
-    private let content: Content
-
-    init(_ content: Content) {
-      self.content = content
-    }
-
-    var body: some View {
-      // Read the block spacing preference and apply it as a layout value
-      content
-        .onPreferenceChange(BlockSpacingKey.self) { @MainActor value in
-          // Override with the resolved list item spacing if enabled
-          blockSpacing = listItemSpacingEnabled ? resolvedListItemSpacing : value
-        }
-        .layoutValue(key: BlockSpacingKey.self, value: blockSpacing)
-    }
-  }
-
   fileprivate struct BlockVStackLayout: Layout {
     struct Cache {
       let spacings: [CGFloat]
