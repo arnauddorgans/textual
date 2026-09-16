@@ -1,4 +1,3 @@
-import OSLog
 import SwiftUI
 
 // MARK: - Overview
@@ -39,10 +38,6 @@ struct TextFragment<Content: AttributedStringProtocol>: View {
   var body: some View {
     text
       .customAttribute(TextFragmentAttribute())
-      // DEBUG-HEIGHT: temporary.
-      .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-        os_log("fragment height %f builder %d", height, textBuilder == nil ? 0 : 1)
-      }
       .onGeometryChange(for: CGSize?.self, of: \.textContainerSize) { size in
         guard let size, let textBuilder else { return }
         textBuilder.sizeChanged(size, environment: textEnvironment)

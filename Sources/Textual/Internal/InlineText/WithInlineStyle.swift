@@ -33,9 +33,11 @@ struct WithInlineStyle<Content: View>: View {
   }
 
   var body: some View {
-    content(output ?? AttributedString())
+    // Resolved on the spot until the state holds it: the first layout then has the styled text, not an empty
+    // string that the state's arrival replaces, which would move whatever is laid out around it.
+    content(output ?? Self.resolved(attributedString: input, style: style, in: environment))
       .onChange(of: Tuple(input, style, environment), initial: true) { _, newValue in
-        resolve(
+        output = Self.resolved(
           attributedString: newValue.values.0,
           style: newValue.values.1,
           in: newValue.values.2
@@ -43,11 +45,11 @@ struct WithInlineStyle<Content: View>: View {
       }
   }
 
-  private func resolve(
+  private static func resolved(
     attributedString: AttributedString,
     style: InlineStyle,
     in environment: TextEnvironmentValues
-  ) {
+  ) -> AttributedString {
     var output = attributedString
 
     for run in attributedString.runs {
@@ -78,6 +80,6 @@ struct WithInlineStyle<Content: View>: View {
       output[run.range].mergeAttributes(attributes, mergePolicy: .keepNew)
     }
 
-    self.output = output
+    return output
   }
 }
