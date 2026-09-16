@@ -50,8 +50,10 @@ struct TextFragment<Content: AttributedStringProtocol>: View {
       .modifier(TextLinkInteraction())
   }
 
+  // Built on the spot until the state holds one: the first layout then has the final text, not an empty line
+  // that the state's arrival replaces, which would move whatever is laid out around it.
   private var text: Text {
-    textBuilder?.text ?? Text(verbatim: "")
+    (textBuilder ?? TextBuilder(content, environment: textEnvironment)).text
   }
 }
 
