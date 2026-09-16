@@ -105,7 +105,9 @@ public struct StructuredText: View {
   @State private var attributedString = AttributedString()
 
   private let markup: String
-  private let parser: any MarkupParser
+  /// `nil` for content given already parsed: nothing to parse once the view appears.
+  private let parser: (any MarkupParser)?
+  private let preparsed: AttributedString?
 
   /// Creates a structured-text view by parsing `markup` with a custom parser.
   ///
@@ -113,6 +115,18 @@ public struct StructuredText: View {
   public init(_ markup: String, parser: any MarkupParser) {
     self.markup = markup
     self.parser = parser
+    self.preparsed = nil
+  }
+
+  /// Creates a structured-text view from content already parsed, with a ``MarkupParser`` or otherwise.
+  ///
+  /// The view's first layout has its final size: nothing is parsed once it appears, which keeps a lazy stack
+  /// from moving as rows of this view come into view.
+  public init(attributedString: AttributedString) {
+    self.markup = ""
+    self.parser = nil
+    self.preparsed = attributedString
+    self._attributedString = State(initialValue: attributedString)
   }
 
   public var body: some View {
@@ -125,11 +139,17 @@ public struct StructuredText: View {
     .onChange(of: markup, initial: true) {
       markupDidChange(markup)
     }
+    .onChange(of: preparsed) { _, preparsed in
+      if let preparsed {
+        attributedString = preparsed
+      }
+    }
     // Disable line limit to avoid per-fragment truncation
     .lineLimit(nil)
   }
 
   private func markupDidChange(_ markup: String) {
+    guard let parser else { return }
     self.attributedString = (try? parser.attributedString(for: markup)) ?? .init()
   }
 }
