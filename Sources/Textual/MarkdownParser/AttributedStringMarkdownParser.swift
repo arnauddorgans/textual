@@ -7,7 +7,9 @@ import Foundation
 ///
 /// This parser can process its output to expand custom emoji and math expressions into
 /// inline attachments.
-public struct AttributedStringMarkdownParser: MarkupParser {
+// Parsing is pure and touches nothing of the main actor: usable off it, as a document's rows are parsed before
+// they are shown. Every stored value is immutable.
+nonisolated public struct AttributedStringMarkdownParser: MarkupParser, @unchecked Sendable {
   private let baseURL: URL?
   private let options: AttributedString.MarkdownParsingOptions
   private let processor: PatternProcessor
