@@ -12,6 +12,8 @@ import SwiftUI
 extension StructuredText {
   struct BlockVStack<Content: View>: View {
     @Environment(\.multilineTextAlignment) private var textAlignment
+    @Environment(\.listItemSpacingEnabled) private var listItemSpacingEnabled
+    @Environment(\.resolvedListItemSpacing) private var resolvedListItemSpacing
 
     private let content: Content
 
@@ -22,8 +24,13 @@ extension StructuredText {
     var body: some View {
       Group(subviews: content) { children in
         BlockVStackLayout(textAlignment: textAlignment) {
-          ForEach(children) {
-            BlockLayoutView($0)
+          ForEach(children) { child in
+            // The block's spacing as a layout value, from its container value: in the same pass, so the first
+            // layout has the final spacing. Overridden by the resolved list item spacing if enabled.
+            child.layoutValue(
+              key: BlockSpacingKey.self,
+              value: listItemSpacingEnabled ? resolvedListItemSpacing : child.containerValues.textualBlockSpacing
+            )
           }
         }
       }

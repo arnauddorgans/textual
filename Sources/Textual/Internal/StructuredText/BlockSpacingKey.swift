@@ -9,3 +9,9 @@ extension StructuredText {
     }
   }
 }
+
+extension ContainerValues {
+  /// The block's spacing, read by `BlockVStack` as it lays its blocks out: unlike the preference, a container value
+  /// reaches the container in the same pass, so the first layout has the final spacing.
+  @Entry var textualBlockSpacing = StructuredText.BlockSpacing()
+}
