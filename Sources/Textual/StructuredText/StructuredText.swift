@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 
 /// A view that displays rich, structured text.
@@ -136,6 +137,10 @@ public struct StructuredText: View {
         .modifier(TextSelectionCoordination())
     }
     .coordinateSpace(.textContainer)
+    // DEBUG-HEIGHT: temporary.
+    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+      os_log("structured height %f", height)
+    }
     .onChange(of: markup, initial: true) {
       markupDidChange(markup)
     }
