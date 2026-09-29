@@ -21,17 +21,24 @@ final class Formatter {
 
   private let attributedString: AttributedString
 
-  convenience init(_ nsAttributedString: NSAttributedString) {
+  /// - Parameter startsMidBlock: The text is a selection that begins after the start of its first
+  ///   block, so that block's list markers, indentation and heading level are not the reader's to
+  ///   copy. See ``AttributedString/removingLeadingBlockDecoration()``.
+  convenience init(_ nsAttributedString: NSAttributedString, startsMidBlock: Bool = false) {
     self.init(
       (try? AttributedString(
         nsAttributedString,
         including: \.textual
-      )) ?? .init()
+      )) ?? .init(),
+      startsMidBlock: startsMidBlock
     )
   }
 
-  init(_ attributedString: AttributedString) {
-    self.attributedString = attributedString
+  init(_ attributedString: AttributedString, startsMidBlock: Bool = false) {
+    self.attributedString =
+      startsMidBlock
+      ? attributedString.removingLeadingBlockDecoration()
+      : attributedString
   }
 }
 
@@ -369,6 +376,82 @@ extension Formatter.InlineNode {
     }
 
     self = node
+  }
+}
+
+// MARK: - Selections that begin inside a block
+
+extension AttributedString {
+  /// Rewrites the presentation intents of the leading runs so that the block the text begins in
+  /// no longer carries the decoration of the containers whose start is not part of the text.
+  ///
+  /// A list marker (and the indentation that goes with it) belongs to a list item only when the
+  /// item's start is copied: selecting `11219` inside `* 11219` copies `11219`, not `  • 11219`.
+  /// Every list item that contains the first run began before the text, so each loses its marker;
+  /// items that follow keep theirs. For the runs that still sit inside the first run's outermost
+  /// list item, the components from the deepest item they share with the first run outwards (that
+  /// item, its list, enclosing items, lists and block quotes) are dropped, and what is inside that
+  /// item (its paragraphs, nested lists) is kept. Outside a list, the first block alone loses its
+  /// enclosing block quotes. A heading the text begins inside becomes a paragraph.
+  ///
+  /// Text that begins in a table cell or any other leaf that is not a paragraph, heading or code
+  /// block is returned unchanged.
+  fileprivate func removingLeadingBlockDecoration() -> AttributedString {
+    guard
+      let chain = runs.lazy.compactMap(\.presentationIntent).first?.components,
+      let leaf = chain.first
+    else {
+      return self
+    }
+
+    switch leaf.kind {
+    case .paragraph, .header, .codeBlock:
+      break
+    default:
+      return self
+    }
+
+    // Innermost first, like `components`. Without a list, the anchor is the block itself.
+    let items = chain.filter {
+      if case .listItem = $0.kind { return true }
+      return false
+    }
+    let anchors = items.isEmpty ? [leaf] : items
+    guard let outermost = anchors.last else {
+      return self
+    }
+
+    let bareLeaf: PresentationIntent.IntentType
+    if case .header = leaf.kind {
+      bareLeaf = PresentationIntent(.paragraph, identity: leaf.identity).components[0]
+    } else {
+      bareLeaf = leaf
+    }
+
+    var result = self
+    for run in runs {
+      guard let intent = run.presentationIntent else {
+        continue
+      }
+      let components = intent.components
+      guard components.contains(outermost) else {
+        break
+      }
+      guard let cut = components.firstIndex(where: { anchors.contains($0) }) else {
+        break
+      }
+
+      var kept = Array(components[..<cut])
+      if kept.isEmpty {
+        kept = [components[cut]]
+      }
+      kept = kept.map { $0 == leaf ? bareLeaf : $0 }
+
+      result[run.range].presentationIntent = kept.reversed().reduce(PresentationIntent?.none) {
+        PresentationIntent($1.kind, identity: $1.identity, parent: $0)
+      }
+    }
+    return result
   }
 }
 

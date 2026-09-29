@@ -102,6 +102,10 @@
       layoutCollection.attributedText(in: range)
     }
 
+    func startsMidBlock(_ range: TextRange) -> Bool {
+      layoutCollection.startsMidBlock(range)
+    }
+
     func text(in range: TextRange) -> String {
       attributedText(in: range).string
     }

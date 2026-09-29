@@ -673,4 +673,57 @@ struct HTMLFormatterTests {
     // then
     #expect(result == "<p></p>")
   }
+
+  // MARK: - Selections that begin inside a block
+
+  @Test func partialFirstItemIsAParagraph() throws {
+    // given
+    let formatter = try Formatter.selection(
+      of: "* Answer 11219\n* Second item", from: "11219")
+    let expected = """
+      <p>11219</p>
+      <ul>
+      <li>Second item</li>
+      </ul>
+      """
+
+    // when
+    let result = formatter.html()
+
+    // then
+    #expect(result == expected)
+  }
+
+  @Test func partialHeadingIsAParagraph() throws {
+    // given
+    let formatter = try Formatter.selection(of: "## Title 11219\n\nBody", from: "11219")
+    let expected = """
+      <p>11219</p>
+      <p>Body</p>
+      """
+
+    // when
+    let result = formatter.html()
+
+    // then
+    #expect(result == expected)
+  }
+
+  @Test func selectionAtItemStartKeepsListItem() throws {
+    // given
+    let formatter = try Formatter.selection(
+      of: "* Answer 11219\n* Second item", from: "Answer", startsMidBlock: false)
+    let expected = """
+      <ul>
+      <li>Answer 11219</li>
+      <li>Second item</li>
+      </ul>
+      """
+
+    // when
+    let result = formatter.html()
+
+    // then
+    #expect(result == expected)
+  }
 }

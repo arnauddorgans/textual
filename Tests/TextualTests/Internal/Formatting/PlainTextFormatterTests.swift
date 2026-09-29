@@ -366,4 +366,117 @@ struct PlainTextFormatterTests {
     // then
     #expect(result == "")
   }
+
+  // MARK: - Selections that begin inside a block
+
+  @Test func partialFirstUnorderedItemHasNoMarker() throws {
+    // given
+    let formatter = try Formatter.selection(
+      of: "* Answer 11219 today\n* Second item", from: "11219", to: " today")
+
+    // when
+    let result = formatter.plainText()
+
+    // then
+    #expect(result == "11219")
+  }
+
+  @Test func partialFirstOrderedItemHasNoMarker() throws {
+    // given
+    let formatter = try Formatter.selection(
+      of: "1. Answer 11219 today\n2. Second item", from: "11219", to: " today")
+
+    // when
+    let result = formatter.plainText()
+
+    // then
+    #expect(result == "11219")
+  }
+
+  @Test func selectionAtItemStartKeepsMarker() throws {
+    // given
+    let formatter = try Formatter.selection(
+      of: "* Answer 11219\n* Second item", from: "Answer", startsMidBlock: false)
+
+    // when
+    let result = formatter.plainText()
+
+    // then
+    #expect(result == "  • Answer 11219\n  • Second item")
+  }
+
+  @Test func partialFirstItemThenWholeItems() throws {
+    // given
+    let formatter = try Formatter.selection(
+      of: "* Answer 11219\n* Second item\n* Third item", from: "11219")
+
+    // when
+    let result = formatter.plainText()
+
+    // then
+    #expect(result == "11219\n\n  • Second item\n  • Third item")
+  }
+
+  @Test func partialFirstOrderedItemThenWholeItemsKeepOrdinals() throws {
+    // given
+    let formatter = try Formatter.selection(
+      of: "1. Answer 11219\n2. Second item", from: "11219")
+
+    // when
+    let result = formatter.plainText()
+
+    // then
+    #expect(result == "11219\n\n  2. Second item")
+  }
+
+  @Test func partialNestedItemDropsEveryEnclosingMarker() throws {
+    // given
+    let formatter = try Formatter.selection(
+      of: """
+        * Parent
+          * Child 11219
+          * Sibling
+        * Next
+        """,
+      from: "11219"
+    )
+
+    // when
+    let result = formatter.plainText()
+
+    // then
+    #expect(result == "11219\n\n  • Sibling\n\n  • Next")
+  }
+
+  @Test func partialBlockQuoteParagraphHasNoIndentation() throws {
+    // given
+    let formatter = try Formatter.selection(
+      of: "> Quoted 11219 text\n>\n> Second paragraph", from: "11219")
+
+    // when
+    let result = formatter.plainText()
+
+    // then
+    #expect(result == "11219 text\n\n  Second paragraph")
+  }
+}
+
+extension Textual.Formatter {
+  /// The formatter for the text a selection starting at `start` (and ending before `end`, or at
+  /// the end) holds, as `attributedText(in:)` hands it over.
+  static func selection(
+    of markdown: String,
+    from start: String,
+    to end: String? = nil,
+    startsMidBlock: Bool = true
+  ) throws -> Textual.Formatter {
+    let text = try NSAttributedString(markdown: markdown)
+    let string = text.string as NSString
+    let lowerBound = string.range(of: start).location
+    let upperBound = end.map { string.range(of: $0).location } ?? string.length
+    return Formatter(
+      text.attributedSubstring(from: NSRange(location: lowerBound, length: upperBound - lowerBound)),
+      startsMidBlock: startsMidBlock
+    )
+  }
 }

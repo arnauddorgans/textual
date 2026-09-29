@@ -6,9 +6,9 @@ final class TransferableText: NSObject {
 
   private let formatter: Formatter
 
-  init(attributedString: NSAttributedString) {
+  init(attributedString: NSAttributedString, startsMidBlock: Bool = false) {
     self.attributedString = attributedString
-    self.formatter = Formatter(attributedString)
+    self.formatter = Formatter(attributedString, startsMidBlock: startsMidBlock)
     super.init()
   }
 }
