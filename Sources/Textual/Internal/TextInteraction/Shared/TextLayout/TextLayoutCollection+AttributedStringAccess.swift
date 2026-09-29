@@ -36,6 +36,22 @@
 
       return attributedText
     }
+
+    /// Whether the text in `range` begins after the start of its first layout's text, so that the
+    /// block it begins in is copied without its start (and without its list marker).
+    func startsMidBlock(_ range: TextRange) -> Bool {
+      guard !range.isCollapsed else { return false }
+
+      let start = range.start.indexPath.layout
+      let lowerBound = localCharacterIndex(at: range.start)
+      let upperBound =
+        (start == range.end.indexPath.layout)
+        ? localCharacterIndex(at: range.end)
+        : layouts[start].attributedString.length
+
+      // A start layout that contributes nothing leaves the text beginning at the next layout's start.
+      return lowerBound > 0 && lowerBound < upperBound
+    }
   }
 
   extension TextLayout {
